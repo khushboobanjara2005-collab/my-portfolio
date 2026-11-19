@@ -1,0 +1,8 @@
+project_id = "khushboo-banjara-portfolio"
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[functions.public-media-url]
+verify_jwt = false

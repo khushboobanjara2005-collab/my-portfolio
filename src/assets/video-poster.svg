@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
+  <title id="title">Video preview</title>
+  <desc id="description">Abstract indigo and coral frame artwork used when a video has no thumbnail.</desc>
+  <rect width="1200" height="800" fill="#19264d"/>
+  <circle cx="850" cy="320" r="290" fill="none" stroke="#aeb9f7" stroke-opacity=".48" stroke-width="2"/>
+  <circle cx="850" cy="320" r="220" fill="none" stroke="#f8f5ef" stroke-opacity=".2" stroke-width="2"/>
+  <path d="M0 620 460 270l280 250-270 280H0z" fill="#5265c8" opacity=".8"/>
+  <path d="m740 800 260-360 200 140v220z" fill="#e67b6e" opacity=".88"/>
+  <rect x="490" y="215" width="220" height="220" rx="110" fill="#f8f5ef" fill-opacity=".92"/>
+  <path d="m575 275 90 50-90 50z" fill="#19264d"/>
+  <text x="64" y="100" fill="#f8f5ef" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="8">FRAME / FORM / FEEL</text>
+</svg>
