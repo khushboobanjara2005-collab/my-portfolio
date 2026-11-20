@@ -31,6 +31,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate Supabase configuration
+        run: |
+          if [[ -z "${VITE_SUPABASE_URL//[[:space:]]/}" ]]; then
+            echo "::error::Configure the VITE_SUPABASE_URL repository variable in Settings > Secrets and variables > Actions > Variables."
+            exit 1
+          fi
+          if [[ -z "${VITE_SUPABASE_PUBLISHABLE_KEY//[[:space:]]/}" ]]; then
+            echo "::error::Configure the VITE_SUPABASE_PUBLISHABLE_KEY repository variable in Settings > Secrets and variables > Actions > Variables."
+            exit 1
+          fi
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
       - name: Build
         run: npm run build
         env:
