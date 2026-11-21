@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import ProjectCard from '../../components/public/ProjectCard'
 import Reveal from '../../components/public/Reveal'
+import ProjectMedia from '../../components/public/ProjectMedia'
 import { listPublishedProjects } from '../../features/projects/publicProjectService'
-
-const ALL_CATEGORIES = 'all'
-const UNCATEGORIZED = 'uncategorized'
 
 function WorkPage() {
   const [projects, setProjects] = useState([])
-  const [activeCategory, setActiveCategory] = useState(ALL_CATEGORIES)
   const [loadState, setLoadState] = useState({ status: 'loading', error: '' })
   const [loadAttempt, setLoadAttempt] = useState(0)
   const isLoading = loadState.status === 'loading'
@@ -38,26 +36,15 @@ function WorkPage() {
     }
   }, [loadAttempt])
 
-  const categories = useMemo(() => {
-    const categoryMap = new Map()
-    projects.forEach((project) => {
-      if (project.category) {
-        categoryMap.set(project.category.id, project.category.name)
-      }
-    })
-    return [...categoryMap.entries()].sort((left, right) => left[1].localeCompare(right[1]))
-  }, [projects])
-
-  const hasUncategorized = projects.some((project) => !project.category)
-  const visibleProjects = projects.filter((project) => {
-    if (activeCategory === ALL_CATEGORIES) {
-      return true
-    }
-    if (activeCategory === UNCATEGORIZED) {
-      return !project.category
-    }
-    return project.category?.id === activeCategory
-  })
+  const videoProjects = useMemo(() => projects.filter((project) => (
+    project.project_media?.some((media) => (
+      ['uploaded_video', 'youtube', 'instagram'].includes(media.media_type)
+    ))
+  )), [projects])
+  const featuredProject = useMemo(
+    () => videoProjects.find((project) => project.is_featured) ?? null,
+    [videoProjects],
+  )
 
   function retryLoading() {
     setLoadState({ status: 'loading', error: '' })
@@ -79,50 +66,13 @@ function WorkPage() {
       <section className="work-archive section-container" aria-labelledby="published-work-heading">
         <div className="archive-heading public-work-heading">
           <div>
-            <p className="eyebrow"><span className="eyebrow-rule" />The work</p>
-            <h2 id="published-work-heading">Made with <em>intention.</em></h2>
+            <p className="eyebrow"><span className="eyebrow-rule" />The video portfolio</p>
+            <h2 id="published-work-heading">Moving work,<em> thoughtfully made.</em></h2>
           </div>
           <p className="archive-disclaimer">
-            Only published projects are shown here.
+            Published video projects
           </p>
         </div>
-
-        {!isLoading && !loadError && projects.length > 0 && (
-          <div className="filter-row" role="group" aria-label="Filter published projects by category">
-            <button
-              className={`filter-button${activeCategory === ALL_CATEGORIES ? ' is-active' : ''}`}
-              type="button"
-              aria-pressed={activeCategory === ALL_CATEGORIES}
-              onClick={() => setActiveCategory(ALL_CATEGORIES)}
-            >
-              All
-            </button>
-            {categories.map(([id, name]) => (
-              <button
-                key={id}
-                className={`filter-button${activeCategory === id ? ' is-active' : ''}`}
-                type="button"
-                aria-pressed={activeCategory === id}
-                onClick={() => setActiveCategory(id)}
-              >
-                {name}
-              </button>
-            ))}
-            {hasUncategorized && (
-              <button
-                className={`filter-button${activeCategory === UNCATEGORIZED ? ' is-active' : ''}`}
-                type="button"
-                aria-pressed={activeCategory === UNCATEGORIZED}
-                onClick={() => setActiveCategory(UNCATEGORIZED)}
-              >
-                Uncategorized
-              </button>
-            )}
-            <span className="filter-count" aria-live="polite">
-              {visibleProjects.length} {visibleProjects.length === 1 ? 'project' : 'projects'}
-            </span>
-          </div>
-        )}
 
         {isLoading ? (
           <p className="public-work-feedback" role="status">Loading published projects…</p>
@@ -137,18 +87,64 @@ function WorkPage() {
               Try again
             </button>
           </div>
-        ) : projects.length === 0 ? (
-          <p className="public-work-feedback">There are no published projects yet. Please check back soon.</p>
-        ) : visibleProjects.length === 0 ? (
-          <p className="public-work-feedback">No projects in this category yet.</p>
+        ) : videoProjects.length === 0 ? (
+          <p className="public-work-feedback">There are no published video projects yet. Please check back soon.</p>
         ) : (
-          <div className="public-project-grid">
-            {visibleProjects.map((project) => (
-              <Reveal key={project.id}>
-                <ProjectCard project={project} />
-              </Reveal>
-            ))}
-          </div>
+          <>
+            {featuredProject && (() => {
+              const featuredMedia = featuredProject.project_media.find(
+                (media) => media.media_type === 'uploaded_video',
+              ) ?? featuredProject.project_media.find(
+                (media) => ['youtube', 'instagram'].includes(media.media_type),
+              ) ?? featuredProject.project_media[0]
+              const coverImageUrl = featuredProject.project_media.find(
+                (media) => media.media_type === 'uploaded_image' && media.signedUrl,
+              )?.signedUrl
+              const coverImageMedia = featuredProject.project_media.find(
+                (media) => media.media_type === 'uploaded_image',
+              )
+
+              return (
+                <Reveal className="public-featured-video">
+                  <div className="public-featured-video-media">
+                    {featuredMedia
+                      ? (
+                        <ProjectMedia
+                          media={featuredMedia}
+                          projectTitle={featuredProject.title}
+                          coverImageUrl={coverImageUrl}
+                          coverImageMedia={coverImageMedia}
+                          compact
+                        />
+                      )
+                      : <span className="public-project-no-media">Featured video coming soon</span>}
+                  </div>
+                  <div className="public-featured-video-copy">
+                    <p className="eyebrow eyebrow-light"><span className="eyebrow-rule" />Featured video</p>
+                    <h3>{featuredProject.title}</h3>
+                    {featuredProject.short_description && <p>{featuredProject.short_description}</p>}
+                    <Link className="text-arrow text-arrow-light" to={`/work/${encodeURIComponent(featuredProject.slug)}`}>
+                      View project <span aria-hidden="true">↗</span>
+                    </Link>
+                  </div>
+                </Reveal>
+              )
+            })()}
+
+            {videoProjects.length > 0 && (
+              <div className="video-projects-grid-heading">
+                <p className="eyebrow"><span className="eyebrow-rule" />Video projects</p>
+                <span>{videoProjects.length} {videoProjects.length === 1 ? 'project' : 'projects'}</span>
+              </div>
+            )}
+            <div className="public-project-grid">
+              {videoProjects.map((project) => (
+                <Reveal key={project.id}>
+                  <ProjectCard project={project} />
+                </Reveal>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </main>

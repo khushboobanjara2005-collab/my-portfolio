@@ -1,124 +1,76 @@
-import { useState } from 'react'
-import { ArrowUpRight, MoveRight } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowUpRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import PracticeArtwork from './PracticeArtwork'
-import PracticeCard from './PracticeCard'
+import ProjectCard from './ProjectCard'
 import Reveal from './Reveal'
-import { disciplines } from '../../content/disciplines'
-
-const filters = [
-  { id: 'all', label: 'All' },
-  { id: 'video', label: 'Video Editing' },
-  { id: 'design', label: 'Graphic Design' },
-  { id: 'web', label: 'Web Development' },
-]
+import { listPublishedProjects } from '../../features/projects/publicProjectService'
 
 function WorkSection() {
-  const [activeFilter, setActiveFilter] = useState('all')
-  const shouldReduceMotion = useReducedMotion()
-  const visibleDisciplines = activeFilter === 'all'
-    ? disciplines
-    : disciplines.filter(({ id }) => id === activeFilter)
+  const [projects, setProjects] = useState([])
+  const [loadState, setLoadState] = useState({ status: 'loading', error: '' })
+  const [loadAttempt, setLoadAttempt] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    listPublishedProjects()
+      .then((data) => {
+        if (active) {
+          setProjects(data)
+          setLoadState({ status: 'loaded', error: '' })
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setLoadState({
+            status: 'error',
+            error: error.message || 'Published projects could not be loaded.',
+          })
+        }
+      })
+
+    return () => { active = false }
+  }, [loadAttempt])
+
+  const videoProjects = useMemo(() => projects.filter((project) => (
+    project.project_media?.some((media) => (
+      ['uploaded_video', 'youtube', 'instagram'].includes(media.media_type)
+    ))
+  )), [projects])
 
   return (
     <section className="onepage-work-section" id="work" aria-labelledby="work-heading">
       <div className="onepage-section-heading section-container">
         <div>
-          <p className="eyebrow"><span className="eyebrow-rule" />02 / Practice previews</p>
-          <h2 id="work-heading">A little <em>form</em> for every feeling.</h2>
+          <p className="eyebrow"><span className="eyebrow-rule" />02 / Selected work</p>
+          <h2 id="work-heading">Stories in <em>motion.</em></h2>
         </div>
-        <p>
-          These visual studies are separate from published projects. Browse the Work index for
-          finished pieces and their stories.
-        </p>
+        <p>Published video projects, brought together in one place.</p>
       </div>
 
-      <Reveal className="featured-placeholder onepage-featured section-container">
-        <div className="featured-placeholder-art" aria-hidden="true">
-          <div className="featured-art-orbit" />
-          <div className="featured-art-board">
-            <PracticeArtwork type="design" />
-          </div>
-          <div className="featured-art-frame">
-            <PracticeArtwork type="video" />
-          </div>
-          <span className="featured-art-note">A STUDIO STUDY / 01</span>
-          <span className="featured-art-stamp">KB / 01</span>
-        </div>
-        <div className="featured-placeholder-copy">
-          <p className="eyebrow eyebrow-light"><span className="eyebrow-rule" />Featured / practice preview</p>
-          <h3>Good work<br />starts <em>somewhere.</em></h3>
-          <p>
-            This original visual study is a placeholder, not a client case study. Published
-            projects live in the Work index.
-          </p>
-          <div className="work-preview-actions">
-            <a className="text-arrow text-arrow-light" href="#work-grid">
-              Explore the practice previews <MoveRight size={18} aria-hidden="true" />
-            </a>
-            <Link className="text-arrow text-arrow-light" to="/work">
-              Browse published projects <ArrowUpRight size={18} aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      </Reveal>
-
-      <div className="work-archive section-container" id="work-grid">
-        <div className="archive-heading">
-          <div>
-            <p className="eyebrow"><span className="eyebrow-rule" />A practice in three parts</p>
-            <h3>Explore by <em>discipline.</em></h3>
-          </div>
-          <p className="archive-disclaimer">
-            Art-led studies, clearly separate from the published project index.
-          </p>
-        </div>
-
-        <div className="filter-row" role="group" aria-label="Filter work by discipline">
-          {filters.map(({ id, label }) => (
-            <button
-              key={id}
-              className={`filter-button${activeFilter === id ? ' is-active' : ''}`}
-              type="button"
-              aria-pressed={activeFilter === id}
-              onClick={() => setActiveFilter(id)}
-            >
-              {label}
+      <div className="section-container">
+        {loadState.status === 'loading' ? (
+          <p className="public-work-feedback" role="status">Loading published projects…</p>
+        ) : loadState.status === 'error' ? (
+          <div className="public-work-feedback public-work-feedback--error">
+            <p role="alert">{loadState.error}</p>
+            <button type="button" className="filter-button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>
+              Try again
             </button>
-          ))}
-          <span className="filter-count" aria-live="polite">
-            {visibleDisciplines.length} {visibleDisciplines.length === 1 ? 'preview' : 'previews'}
-          </span>
-        </div>
-
-        <div className="work-practice-grid">
-          <AnimatePresence initial={false} mode="popLayout">
-            {visibleDisciplines.map((discipline) => (
-              <motion.div
-                key={discipline.id}
-                layout={!shouldReduceMotion}
-                className={`work-practice-item work-practice-item--${discipline.id}`}
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={shouldReduceMotion ? undefined : { opacity: 0, y: -10 }}
-                transition={{ duration: shouldReduceMotion ? 0 : 0.28 }}
-              >
-                <PracticeCard
-                  discipline={discipline}
-                  href="#contact"
-                  showPlaceholder
-                />
-              </motion.div>
+          </div>
+        ) : videoProjects.length === 0 ? (
+          <p className="public-work-feedback" role="status">Published video projects will appear here.</p>
+        ) : (
+          <div className="public-project-grid home-video-project-grid">
+            {videoProjects.slice(0, 3).map((project) => (
+              <Reveal key={project.id}>
+                <ProjectCard project={project} />
+              </Reveal>
             ))}
-          </AnimatePresence>
-        </div>
-
-        <div className="archive-footnote">
-          <span className="archive-footnote-mark" aria-hidden="true">✳</span>
-          <p>These are visual practice previews, not published project case studies.</p>
-          <Link to="/work">
-            See published projects <ArrowUpRight size={15} aria-hidden="true" />
+          </div>
+        )}
+        <div className="home-work-link">
+          <Link className="text-arrow" to="/work">
+            View all video projects <ArrowUpRight size={17} aria-hidden="true" />
           </Link>
         </div>
       </div>

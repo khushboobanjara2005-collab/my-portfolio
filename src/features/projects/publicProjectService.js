@@ -1,6 +1,27 @@
 import { getSupabaseClient } from '../../lib/supabaseClient'
 
-const PROJECT_SELECT = [
+const PROJECT_MEDIA_SELECT = [
+  'id',
+  'media_type',
+  'media_url',
+  'storage_path',
+  'thumbnail_url',
+  'alt_text',
+  'display_order',
+].join(',')
+const PROJECT_LIST_SELECT = [
+  'id',
+  'title',
+  'slug',
+  'short_description',
+  'project_date',
+  'published_at',
+  'display_order',
+  'is_featured',
+  'category:categories(id, name, slug)',
+  `project_media(${PROJECT_MEDIA_SELECT})`,
+].join(',')
+const PROJECT_DETAIL_SELECT = [
   'id',
   'title',
   'slug',
@@ -9,14 +30,19 @@ const PROJECT_SELECT = [
   'project_date',
   'published_at',
   'display_order',
+  'is_featured',
   'category:categories(id, name, slug)',
-  'project_media(id, project_id, media_type, media_url, storage_path, thumbnail_url, alt_text, display_order)',
+  `project_media(${PROJECT_MEDIA_SELECT})`,
 ].join(',')
 const MEDIA_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SIGNED_URL_REFRESH_MARGIN_MS = 60_000
 const MAX_SIGNED_URL_TTL_SECONDS = 60 * 60
+const PUBLISHED_PROJECT_CACHE_TTL_MS = 30_000
 const signedUrlCache = new Map()
 const signedUrlRequests = new Map()
+let publishedProjectsCache = null
+let publishedProjectsCacheExpiresAt = 0
+let publishedProjectsRequest = null
 
 async function getClient() {
   const supabase = await getSupabaseClient()
@@ -133,6 +159,10 @@ async function signProjectMedia(media) {
     return { ...media, signedUrl: media.media_url, mediaUnavailable: false, mediaError: '' }
   }
 
+  if (media.media_type === 'uploaded_video') {
+    return { ...media, signedUrl: null, mediaUnavailable: false, mediaError: '' }
+  }
+
   try {
     return {
       ...media,
@@ -165,27 +195,55 @@ async function addSignedMedia(project) {
 }
 
 export async function listPublishedProjects() {
-  const supabase = await getClient()
-  const { data, error } = await supabase
-    .from('projects')
-    .select(PROJECT_SELECT)
-    .eq('status', 'published')
-    .order('display_order', { ascending: true })
-    .order('published_at', { ascending: false })
-    .order('id', { ascending: true })
-
-  if (error) {
-    throw error
+  if (
+    publishedProjectsCache
+    && publishedProjectsCacheExpiresAt > Date.now()
+  ) {
+    return publishedProjectsCache
+  }
+  if (publishedProjectsRequest) {
+    return publishedProjectsRequest
   }
 
-  return Promise.all(data.map(addSignedMedia))
+  const request = (async () => {
+    const supabase = await getClient()
+    const { data, error } = await supabase
+      .from('projects')
+      .select(PROJECT_LIST_SELECT)
+      .eq('status', 'published')
+      .order('display_order', { ascending: true })
+      .order('published_at', { ascending: false })
+      .order('id', { ascending: true })
+
+    if (error) {
+      throw error
+    }
+
+    const projects = data.map((project) => ({
+      ...project,
+      project_media: [...(project.project_media ?? [])]
+        .sort((left, right) => left.display_order - right.display_order),
+    }))
+    publishedProjectsCache = projects
+    publishedProjectsCacheExpiresAt = Date.now() + PUBLISHED_PROJECT_CACHE_TTL_MS
+    return projects
+  })()
+
+  publishedProjectsRequest = request
+  try {
+    return await request
+  } finally {
+    if (publishedProjectsRequest === request) {
+      publishedProjectsRequest = null
+    }
+  }
 }
 
 export async function getPublishedProjectBySlug(slug) {
   const supabase = await getClient()
   const { data, error } = await supabase
     .from('projects')
-    .select(PROJECT_SELECT)
+    .select(PROJECT_DETAIL_SELECT)
     .eq('status', 'published')
     .eq('slug', slug)
     .maybeSingle()

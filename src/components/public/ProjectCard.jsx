@@ -3,13 +3,12 @@ import { Link } from 'react-router-dom'
 import ProjectMedia from './ProjectMedia'
 
 function ProjectCard({ project }) {
-  const media = project.project_media[0]
-  const videoMedia = project.project_media.find((item) => item.media_type === 'uploaded_video')
-  const cardMedia = videoMedia ?? media
-  const coverImageUrl = project.project_media.find(
-    (item) => item.media_type === 'uploaded_image' && item.signedUrl,
-  )?.signedUrl
-  const summary = project.short_description || project.description
+  const mediaEntries = project.project_media ?? []
+  const cardMedia = mediaEntries.find((item) => item.media_type === 'uploaded_video')
+    ?? mediaEntries.find((item) => ['youtube', 'instagram'].includes(item.media_type))
+  const coverImageMedia = mediaEntries.find((item) => item.media_type === 'uploaded_image')
+  const coverImageUrl = coverImageMedia?.signedUrl
+  const summary = project.short_description
 
   return (
     <article className="public-project-card">
@@ -20,13 +19,14 @@ function ProjectCard({ project }) {
               media={cardMedia}
               projectTitle={project.title}
               coverImageUrl={coverImageUrl}
+              coverImageMedia={coverImageMedia}
               compact
             />
           )
           : <span className="public-project-no-media">Project media coming soon</span>}
       </div>
       <div className="public-project-card-copy">
-        <p className="public-project-kicker">{project.category?.name ?? 'Uncategorized'}</p>
+        <p className="public-project-kicker">{project.category?.name ?? 'Video project'}</p>
         <h2>
           <Link to={`/work/${encodeURIComponent(project.slug)}`}>{project.title}</Link>
         </h2>

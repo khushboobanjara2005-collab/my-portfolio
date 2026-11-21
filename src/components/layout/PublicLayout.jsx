@@ -100,7 +100,10 @@ function PublicLayout() {
     <div className="studio-shell">
       <header className="studio-header" onKeyDown={handleNavigationKeyDown}>
         <Link className="studio-brand" to="/" onClick={closeMobileNavigation} aria-label="Khushboo Banjara home">
-          <span className="studio-brand-mark">KB<span>.</span></span>
+          <span className="studio-brand-mark" aria-hidden="true">
+            <span className="studio-brand-initials">KB</span>
+            <span className="studio-brand-dot" />
+          </span>
           <span className="studio-brand-copy">
             <strong>Khushboo Banjara</strong>
             <small>INDEPENDENT CREATIVE</small>

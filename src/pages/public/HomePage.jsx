@@ -36,16 +36,15 @@ function HomePage() {
           transition={{ duration: shouldReduceMotion ? 0 : 0.6, ease: 'easeOut' }}
         >
           <p className="eyebrow"><span className="eyebrow-rule" />Independent creative practice</p>
-          <p className="hero-name">Khushboo Banjara <span>· CREATIVE / DIGITAL</span></p>
+          <p className="hero-name">Creative studio <span>· Freelance / Digital</span></p>
           <motion.h1
             id="home-heading"
             initial={shouldReduceMotion ? false : 'hidden'}
             animate="visible"
             transition={{ staggerChildren: shouldReduceMotion ? 0 : 0.1, delayChildren: 0.08 }}
           >
-            <motion.span variants={lineVariants}>Stories that</motion.span>
-            <motion.span variants={lineVariants}><em>move</em> between</motion.span>
-            <motion.span variants={lineVariants}>frame &amp; form.</motion.span>
+            <motion.span variants={lineVariants}>KHUSHBOO</motion.span>
+            <motion.span variants={lineVariants}><em>BANJARA</em></motion.span>
           </motion.h1>
           <p className="hero-role-line">
             Freelance Video Editor <span>·</span> Graphic Designer <span>·</span> Web Developer

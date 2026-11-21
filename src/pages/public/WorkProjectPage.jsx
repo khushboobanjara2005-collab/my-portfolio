@@ -74,7 +74,7 @@ function WorkProjectPage() {
           <header className="public-project-detail-heading">
             <p className="eyebrow">
               <span className="eyebrow-rule" />
-              {project.category?.name ?? 'Uncategorized'}
+              {project.category?.name ?? 'Video project'}
             </p>
             <h1>{project.title}</h1>
             {project.short_description && (
